@@ -12,5 +12,5 @@ proc newToken*(token_type: TokenType, lexeme: string, literal: LoxObject, line: 
   result = Token(token_type: token_type, lexeme: lexeme, literal: literal, line: line)
 
 proc `$`*(this: Token): string =
-  return "Type: " & $this.type & "\tLexeme: " & $this.lexeme &
+  return "TokenType: " & $this.token_type & "\tLexeme: " & $this.lexeme &
       "\tLine: " & $this.line;

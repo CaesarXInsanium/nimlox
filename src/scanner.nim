@@ -10,7 +10,6 @@ type
     source: string
     tokens: seq[Token]
     start: int
-    endl: int
     current: int
     line: int
 
@@ -37,7 +36,7 @@ proc is_at_end*(self: var Scanner): bool =
 
 proc add_token*(self: var Scanner, token_type: TokenType,
     lox_object: LoxObject) =
-  var text = self.source.substr(self.start, self.current)
+  var text = self.source.substr(self.start, self.current - 1)
   self.tokens.add(newToken(token_type, text, nil, self.line))
 
 proc add_token*(self: var Scanner, token_type: TokenType) =
@@ -60,13 +59,13 @@ proc peek(self: var Scanner): char =
 proc identifier(self: var Scanner) =
   while(isAlphaNumeric(self.peek())):
     discard self.advance()
-  var text: string = self.source.substr(self.start, self.current)
+  var text: string = self.source.substr(self.start, self.current - 1)
   try:
     var token_type = keywords[text]
-    self.add_token(token_type)
+    add_token(self, token_type)
   except KeyError:
     var token_type = TokenType.Identifier
-    self.add_token(token_type)
+    add_token(self, token_type)
 
 proc match(self: var Scanner, expected: char): bool =
   if (self.is_at_end()):
@@ -91,19 +90,21 @@ proc strings(self: var Scanner) =
     error(self.line, "Unterminated String")
     return
   discard self.advance()
-  var value = self.source.substr(self.start + 1, self.current - 1)
+  var value = self.source.substr(self.start + 1, self.current)
   self.add_token(TokenType.String, LoxObject(kind: LoxKind.String,
       string_value: value))
 
 proc number(self: var Scanner) =
+  echo "Processing number!"
   while isDigit(self.peek()):
     discard self.advance()
   if self.peek() == '.' and isDigit(self.peek_next()):
     discard self.advance()
     while isDigit(self.peek()):
       discard self.advance()
-    self.add_token(TokenType.Number, LoxObject(kind: LoxKind.Float,
-        float_value: parseFloat(self.source.substr(self.start, self.current))))
+    echo "Adding Number Token!"
+  self.add_token(TokenType.Number, LoxObject(kind: LoxKind.Float,
+      float_value: parseFloat(self.source.substr(self.start, self.current - 1))))
 
 proc scan_token(self: var Scanner) =
   var c = self.advance()
@@ -130,26 +131,40 @@ proc scan_token(self: var Scanner) =
     self.add_token(TokenType.Star)
     ## Two Characters
   of '!':
-    self.add_token(self.match('=') ? TokenType.BangEqual: TokenType.Bang)
+    if self.match('='):
+      add_token(self, TokenType.BangEqual)
+    else:
+      add_token(self, TokenType.Bang)
   of '=':
-    self.add_token(match('=') ? TokenType.EqualEqual: TokenType.Equal)
+    if self.match('='):
+      add_token(self, TokenType.EqualEqual)
+    else:
+      add_token(self, TokenType.Equal)
   of '<':
-    self.add_token(match('=') ? TokenType.LessEqual: TokenType.Less)
+    if self.match('='):
+      add_token(self, TokenType.LessEqual)
+    else:
+      add_token(self, TokenType.Less)
   of '>':
-    self.add_token(match('=') ? TokenType.GreaterEqual: TokenType.Greater)
+    if self.match('='):
+      add_token(self, TokenType.GreaterEqual)
+    else:
+      add_token(self, TokenType.Greater)
+
   of '/':
+    # handle comments
     if self.match('/'):
       while self.peek() != '\n' and not self.is_at_end():
-        self.advance()
+        discard self.advance()
     else:
       self.add_token(TokenType.Slash)
     # whitespace
   of ' ':
-    break
+    discard
   of '\r':
-    break
+    discard
   of '\t':
-    break
+    discard
   of '\n':
     self.line = self.line + 1
   of '"':
@@ -173,3 +188,6 @@ proc newScanner*(source: string): Scanner =
   result = new Scanner
   result.source = source
   result.tokens = newSeq[Token]()
+  result.start = 0
+  result.current = 0
+  result.line = 0
