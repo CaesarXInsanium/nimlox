@@ -2,18 +2,10 @@
 # uses this file as the main entry point of the application.
 
 import os
-import std/strformat
 import token
 import scanner
+import loxerror
 
-var had_error = false
-
-proc report(line: int, where: string, message: string) =
-  var mes = fmt"[line {line}] Error here [{where}] message [{message}]"
-  echo mes
-
-proc error(line: int, message: string) = 
-  report(line, "", message)
 
 proc run(source: string) = 
   var scanner = newScanner(source)
